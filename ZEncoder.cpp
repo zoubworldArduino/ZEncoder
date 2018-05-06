@@ -99,7 +99,7 @@ SerialDebug=0;
 //attachEncoderInt(privateIntHandler);
 }
 
-void ZEncoder::setSerialDebug(Uart * mySerialDebug)
+void ZEncoder::setSerialDebug(HardwareSerial * mySerialDebug)
 {
   SerialDebug=mySerialDebug;
 }

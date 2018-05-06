@@ -65,10 +65,10 @@ public:
   void simulate(signed int value);
   
   
-  void setSerialDebug(Uart * SerialDebug);
+  void setSerialDebug(HardwareSerial * SerialDebug);
   
 private:
-  Uart * SerialDebug;
+  HardwareSerial * SerialDebug;
 
   volatile int ValueOld;
 
