@@ -17,16 +17,24 @@ signed int ZEncoder::getValue() {
   return value2;
 }
 #if ENABLE_SPEED
+void ZEncoder::resetSpeed(void)
+{
+_spd=0;
+}
 signed int ZEncoder::getSpeed(void) {
 
   noInterrupts();
   signed int speed = _spd;
+  if (speed==0)//avoir div by 0
+    return 0;
   unsigned long timeLast = _timeLast;
   unsigned long timen = micros();
   interrupts();
 
   signed int s = (speed > 0) ? 1 : -1;  // one tips with direction
-  if ((signed int)(timen - timeLast) >= s * 1000000 / speed) // if slower than before compute as slow methode( without tips) 
+  signed int duree=(timen - timeLast);
+  signed int deltaTime=1000000 / speed;
+  if ((signed int)(duree) >= s *deltaTime ) // if slower than before compute as slow methode( without tips) 
       {
 
     speed = s * (1000000 / (timen - timeLast));

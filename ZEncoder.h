@@ -59,6 +59,13 @@ public:
    * \return The speed in clicks per second.
    */
   signed int getSpeed(void);
+  /* reset speed value to zero
+  because speed is based on the last tick event when no tick happen the speed isn't updated normaly,
+  here we add a computation based on last event tha time past since this event for low speed motion,
+  this introduce an history from the past and consider a continuity, as in some case it isn't truth, we add this reset function
+  example when you reset you PID or stop it at restart the data can be wrong.
+  */
+ void resetSpeed(void);
 #endif
   volatile int value;
   
@@ -67,7 +74,17 @@ public:
   
   void setSerialDebug(HardwareSerial * SerialDebug);
   
-private:
+#ifdef ROS_USED 
+    void setup( ros::NodeHandle  *myNodeHandle,	const char   *	topic);
+	void loop();
+#endif 
+  private:
+#ifdef ROS_USED 
+    ros::NodeHandle  *nh;
+    sensor_msgs::Range range_msg;//speed //deltaD//D
+    ros::Publisher *pub_range;
+#endif
+
   HardwareSerial * SerialDebug;
 
   volatile int ValueOld;
