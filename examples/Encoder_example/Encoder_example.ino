@@ -63,35 +63,8 @@ ros::NodeHandle  nh;
 
 #define MySerial P_COM0.serial2
 #define PcomSerial MySerial
-/*
-
-https://www.youtube.com/watch?v=lujgeInpejY
-http://wiki.ros.org/rosjava
-https://github.com/rosjava/rosjava_core
-http://rosjava.github.io/rosjava_core/0.1.6/getting_started.html
-
-http://www.gurucoding.com/en/raspberry_pi_eclipse/raspberry_pi_cross_compilation_in_eclipse.php
-http://www.raspberry-projects.com/pi/programming-in-c/compilers-and-ides/eclipse/create-new-eclipse-project-for-the-rpi
-
-https://playground.arduino.cc/Code/Eclipse
-
-https://www.materiel.net/pc-portable/acer-aspire-a315-21-97ja-144195.html
-
-http://eclipse.baeyens.it/
-*/
-#define NBHcsr04 6
-
-#define NBCoder 8
-#define NBG2P 8
-#define NBIr 8
-#define NBPwm 8
-#define NB_WHEEL 3
-#define NB_CMD 3
 
 
-
-#define perimetre (430/2)    /*mm*/
-#define entreAxe  336 /*mm*/
 
 #define M1_CA P_Encoder[1-1].Pin.IA  
 #define M1_CB P_Encoder[1-1].Pin.IB   
@@ -142,6 +115,9 @@ void privateIntHandler3() {
 void setupCMD() {
   MySerial.print("setup CMD \r\n");
   delay(500);
+  cmd1.setPin(M1_CA, M1_CB, M1_MP, M1_MM);
+  cmd2.setPin(M2_CA, M2_CB, M2_MP, M2_MM);
+  cmd3.setPin(M3_CA, M3_CB, M3_MP, M3_MM);
   cmd1.setup();
   cmd2.setup();
   cmd3.setup();
