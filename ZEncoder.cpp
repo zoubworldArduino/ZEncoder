@@ -1,5 +1,6 @@
 #include <ZEncoder.h>
-
+#define DEBUG(a) a
+//#define DEBUG(a) {}
 
 
 /** give direction since last getDeltaValue()*/
@@ -73,7 +74,10 @@ void ZEncoder::setValue(int newValue) {
  */
 ZEncoder::ZEncoder(int pinA, int pinB, eMode mymode,
     void (*optionalCallBack)(int)) {
-
+#ifdef ROS_USED 
+    nh=0;
+    pub_counter=0;
+#endif
 #if ENABLE_SPEED
   _timeLast = micros();
 #endif
@@ -312,42 +316,31 @@ void ZEncoder::update(void) {
 
 
 
+#ifdef ROS_USED 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/** setup :
+  At setup after NodeHandle setup, call this to initialise the topic
+*/
+void ZEncoder::setup( ros::NodeHandle * myNodeHandle,	const char   *	topic)
+{
+  nh=myNodeHandle;
+  pub_counter=new ros::Publisher(topic, &counter_msg);
+  
+  nh->advertise(*pub_counter);
+  DEBUG(nh->loginfo("ZEncoder::setup()")); 
+  DEBUG(nh->loginfo(topic)); 
+  
+}
+/** loop :
+  on loop  before NodeHandle refresh(spinOnce), call this to update the topic
+*/
+void ZEncoder::loop()
+{
+  if(pub_counter!=0)
+  {
+      counter_msg.data = getValue();
+      pub_counter->publish(&counter_msg);
+  }
+}
+#endif 
 

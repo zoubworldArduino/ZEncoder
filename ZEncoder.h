@@ -19,6 +19,13 @@
 #define _PZEncoder_H
 
 #include <Arduino.h>
+
+#ifdef ROS_USED 
+#include <ros.h>
+#include <ros/time.h>
+#include <std_msgs/Int16.h>
+#endif 
+
 /*==================================================================================================*/
 /*==================================================================================================*/
 /*==================================================================================================*/
@@ -81,8 +88,8 @@ public:
   private:
 #ifdef ROS_USED 
     ros::NodeHandle  *nh;
-    sensor_msgs::Range range_msg;//speed //deltaD//D
-    ros::Publisher *pub_range;
+    std_msgs::Int16 counter_msg;//speed //deltaD//D
+    ros::Publisher *pub_counter;
 #endif
 
   HardwareSerial * SerialDebug;
