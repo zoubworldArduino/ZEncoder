@@ -22,23 +22,29 @@ void ZEncoder::resetSpeed(void)
 {
 _spd=0;
 }
+/** return the nulber of tick per minutes
+*/
 signed int ZEncoder::getSpeed(void) {
 
   noInterrupts();
   signed int speed = _spd;
   if (speed==0)//avoir div by 0
+  {
+    interrupts();
     return 0;
+  }
   unsigned long timeLast = _timeLast;
   unsigned long timen = micros();
   interrupts();
+   signed int duree=(timen - timeLast);
 
   signed int s = (speed > 0) ? 1 : -1;  // one tips with direction
-  signed int duree=(timen - timeLast);
-  signed int deltaTime=1000000 / speed;
-  if ((signed int)(duree) >= s *deltaTime ) // if slower than before compute as slow methode( without tips) 
+ 
+  signed int deltaTime=60*1000000 / speed;
+  if ((signed int)(duree) >= s*deltaTime ) // if slower than before compute as slow methode( without tips) 
       {
 
-    speed = s * (1000000 / (timen - timeLast));
+    speed =(s* (60*1000000)  / (duree));
 
   }
 
@@ -77,6 +83,10 @@ ZEncoder::ZEncoder(int pinA, int pinB, eMode mymode,
 #ifdef ROS_USED 
     nh=0;
     pub_counter=0;
+    #if ENABLE_SPEED
+    pub_speed=0;
+    #endif
+    rate=10;//10ms
 #endif
 #if ENABLE_SPEED
   _timeLast = micros();
@@ -109,7 +119,21 @@ SerialDebug=0;
 #endif
 // Set up interrupts
 //attachEncoderInt(privateIntHandler);
+  
+#ifdef OPTIMIZE
+  addIC1= (int *)&(PORT->Group[g_APinDescription[pinIC1].ulPort].IN.reg);
+  addIC2=(int *)&(PORT->Group[g_APinDescription[pinIC2].ulPort].IN.reg);
+  maskIC1=(unsigned int) (1ul << g_APinDescription[pinIC1].ulPin);
+  maskIC2=(unsigned int) (1ul << g_APinDescription[pinIC2].ulPin);
+#endif
 }
+#ifdef OPTIMIZE // optimize by precompute @ and mask
+  #define DIGITALREADIC1() (*(int *)addIC1)&maskIC1==0?LOW:HIGH
+  #define DIGITALREADIC2() (*(int *)addIC2)&maskIC2==0?LOW:HIGH
+#else
+  #define DIGITALREADIC1() digitalRead(pinIC1)
+  #define DIGITALREADIC2() digitalRead(pinIC2)
+#endif
 
 void ZEncoder::setSerialDebug(HardwareSerial * mySerialDebug)
 {
@@ -242,16 +266,19 @@ if (mode == QUARTER) // count one tip per phase(4 phases per cycle)
 //15      1        1        1        1        no movement
 // Simple, easy-to-read "documentation" version 
 //
+
+
 void ZEncoder::update(void) {
+  
 #if ENABLE_SPEED
   unsigned long _time = micros();
 #endif
-  signed char inc = 0;
+  signed char inc ;
   if (mode == QUARTER) {
     uint8_t s = state & 3;
-    if (digitalRead(pinIC1))
+    if (DIGITALREADIC1())
       s |= 4;
-    if (digitalRead(pinIC2))
+    if (DIGITALREADIC2())
       s |= 8;
 
     switch (s) {
@@ -283,7 +310,7 @@ void ZEncoder::update(void) {
 
     state = (s >> 2);
   } else {
-    if (digitalRead(pinIC2) == 1)
+    if (DIGITALREADIC2() == 1)
       inc = 1;
     else
       inc = -1;
@@ -292,10 +319,12 @@ void ZEncoder::update(void) {
   
 #if ENABLE_SPEED
   // handle the encoder velocity calc
-
-  if ((_time - _timeLast) > 0) {
-    _spd = inc * (1000000 / (_time - _timeLast));
+signed long delta =(_time - _timeLast);
+  if (delta > 0) {
+    _spd = (( inc *60000000) / delta);
   }
+  else
+    _spd = inc * 60000000/1;
   _timeLast = _time;
 
   /*
@@ -318,6 +347,10 @@ void ZEncoder::update(void) {
 
 #ifdef ROS_USED 
 
+void ZEncoder::setRefreshRateUs(uint32_t intervalTime)
+{
+	rate=intervalTime;
+}
 /** setup :
   At setup after NodeHandle setup, call this to initialise the topic
 */
@@ -327,6 +360,33 @@ void ZEncoder::setup( ros::NodeHandle * myNodeHandle,	const char   *	topic)
   pub_counter=new ros::Publisher(topic, &counter_msg);
   
   nh->advertise(*pub_counter);
+  #if ENABLE_SPEED
+  String topicspeed=topic;
+   topicspeed +="/SPEED";
+    char   *	topics=new char[topicspeed. length()+1];
+    topicspeed.toCharArray(topics,topicspeed.length()+1);
+  pub_speed=new ros::Publisher(topics, &speed_msg);  
+  nh->advertise(*pub_speed);
+  #endif
+  DEBUG(nh->loginfo("ZEncoder::setup()")); 
+  DEBUG(nh->loginfo(topic)); 
+  
+}
+
+/** setup :
+  At setup after NodeHandle setup, call this to initialise the topic
+*/
+void ZEncoder::setup( ros::NodeHandle * myNodeHandle,	const char   *	topic,	const char   *	topicspeed)
+{
+  nh=myNodeHandle;
+  pub_counter=new ros::Publisher(topic, &counter_msg);
+  
+  nh->advertise(*pub_counter);
+  #if ENABLE_SPEED
+ 
+  pub_speed=new ros::Publisher(topicspeed, &speed_msg);  
+  nh->advertise(*pub_speed);
+  #endif
   DEBUG(nh->loginfo("ZEncoder::setup()")); 
   DEBUG(nh->loginfo(topic)); 
   
@@ -337,9 +397,18 @@ void ZEncoder::setup( ros::NodeHandle * myNodeHandle,	const char   *	topic)
 void ZEncoder::loop()
 {
   if(pub_counter!=0)
+  if((micros()-timestamp)>rate)
   {
-      counter_msg.data = getValue();
+      counter_msg.data = -getValue();
       pub_counter->publish(&counter_msg);
+        #if ENABLE_SPEED
+        if(pub_speed!=0)
+        {
+           speed_msg.data =  -getSpeed();
+           pub_speed->publish(&speed_msg);
+        }
+        #endif
+      timestamp=micros();
   }
 }
 #endif 

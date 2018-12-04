@@ -24,8 +24,10 @@
 #include <ros.h>
 #include <ros/time.h>
 #include <std_msgs/Int16.h>
+#include <std_msgs/Int32.h>
+   
 #endif 
-
+#define OPTIMIZE 1
 /*==================================================================================================*/
 /*==================================================================================================*/
 /*==================================================================================================*/
@@ -37,7 +39,7 @@ enum Rotation {
 enum eMode {
   QUARTER = 0, FULL = 1
 };
-#define ENABLE_SPEED 1
+//#define ENABLE_SPEED 1
 
 typedef void (*ZEncodervoidFuncPtr)(void);
 class ZEncoder {
@@ -82,14 +84,35 @@ public:
   void setSerialDebug(HardwareSerial * SerialDebug);
   
 #ifdef ROS_USED 
+  void setRefreshRateUs(uint32_t intervalTime);
     void setup( ros::NodeHandle  *myNodeHandle,	const char   *	topic);
+     void setup( ros::NodeHandle * myNodeHandle,	const char   *	topic,	const char   *	topicspeed);
 	void loop();
 #endif 
   private:
+    
+#ifdef OPTIMIZE
+      int * addIC1;
+      int * addIC2;
+      unsigned int maskIC1;
+      unsigned int maskIC2;
+#endif
+      
 #ifdef ROS_USED 
     ros::NodeHandle  *nh;
     std_msgs::Int16 counter_msg;//speed //deltaD//D
     ros::Publisher *pub_counter;
+    int timestamp;
+    uint32_t rate;
+    
+    
+     #if ENABLE_SPEED
+    
+    std_msgs::Int32 speed_msg;
+    ros::Publisher *pub_speed;    
+    
+  #endif
+  
 #endif
 
   HardwareSerial * SerialDebug;
