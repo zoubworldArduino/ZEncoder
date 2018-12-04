@@ -50,6 +50,14 @@ signed int ZEncoder::getSpeed(void) {
 
   return (speed);
 }
+
+to be implemented on this way else it cost a lot on IRQ:
+
+  {
+  (Value - ValueLastspeed)*1000000*60/(timen - timeLastspeed)
+ValueLastspeed=Value;
+timeLastspeed=timen;
+}
 #endif
 
 // Gets the in/de-crement of value on the encoder since last read.  It's an integer, positive or negative.
