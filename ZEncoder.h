@@ -1,20 +1,8 @@
-/*************************************************** 
-  This is a library for our Adafruit 16-channel PWM & Servo driver
+/** @file ZEncoder.h
+An library that manage encoder like PDEC peripheral but in software with pin interrupt.
 
-  Pick one up today in the adafruit shop!
-  ------> http://www.adafruit.com/products/815
 
-  These displays use I2C to communicate, 2 pins are required to  
-  interface. For Arduino UNOs, thats SCL -> Analog 5, SDA -> Analog 4
-
-  Adafruit invests time and resources providing this open source code, 
-  please support Adafruit and open-source hardware by purchasing 
-  products from Adafruit!
-
-  Written by Limor Fried/Ladyada for Adafruit Industries.  
-  BSD license, all text above must be included in any redistribution
- ****************************************************/
-
+*/
 #ifndef _PZEncoder_H
 #define _PZEncoder_H
 
@@ -31,13 +19,16 @@
 /*==================================================================================================*/
 /*==================================================================================================*/
 /*==================================================================================================*/
-// Another piece of state for rotation state machine
+
+//! Another piece of state for rotation state machine
 enum Rotation {
   CLOCKWISE = 2, COUNTERCLOCKWISE = 3, UNCERTAIN = 4
 };
 
+//! Mode accuracy.
 enum eMode {
-  QUARTER = 0, FULL = 1
+  QUARTER = 0 //!< define a tick at each edge of waveform of IA ant IB pin, so 4 tick per rotation, it use 2 interruptions.
+  , FULL = 1 //!< define a tick per 4 edges of waveform of IA ant IB pin, so 1 tick per rotation, it use 1 interruption.
 };
 //#define ENABLE_SPEED 1
 
@@ -46,13 +37,37 @@ class ZEncoder {
 
 public:
   //  ZEncoder(int pinA,int pinB, void (*optionalCallBack)(int));
-  ZEncoder(int pinA, int pinB, eMode mymode, void (*optionalCallBack)(int));
+  /** constructor 
+  **/
+  ZEncoder(int pinA// pin IA that read the encoder output A, this pin must support interupt
+  , int pinB// pin IA that read the encoder output B, this pin should support interupt
+  , eMode mymode//! the mode of accuracy
+  , void (*optionalCallBack)(int)// the call back function where you will call instance.update();
+  );
+  /** get teh absolute value
+  @return the absolute value of encoder
+  */
   signed int getValue();
-  void setValue(int newValue);
+  /** set the absolute value  
+  */
+  void setValue(int newValue//!< new value
+  );
+  /** set the absolute value to 0  
+  */
   void resetValue();
+  /** get the delta of value since last call to this function.
+  @return the absolute value of encoder
+  */
   signed int getDeltaValue();
+  /** perform the processing on the interruption, it should be link to the call back.
+  */
   void update();
+  /** get the current direction
+  */
   int getDirection();
+  /** atttach manualy an interupt call back
+  @deprecated
+  */
   void attachEncoderInt(ZEncodervoidFuncPtr userFunc);
   
 #if ENABLE_SPEED
@@ -68,7 +83,7 @@ public:
    * \return The speed in clicks per second.
    */
   signed int getSpeed(void);
-  /* reset speed value to zero
+  /** reset speed value to zero
   because speed is based on the last tick event when no tick happen the speed isn't updated normaly,
   here we add a computation based on last event tha time past since this event for low speed motion,
   this introduce an history from the past and consider a continuity, as in some case it isn't truth, we add this reset function
@@ -77,18 +92,43 @@ public:
  void resetSpeed(void);
 #endif
   volatile int value;
-  
+  /**
+  @deprecated
+  */
   void simulate(signed int value);
   
-  
+  /** setup a debug channel to have output on serial
+  the drawback it that it waste cpu cycle, and you an lost some tick
+  but usefull for debug.
+  */
   void setSerialDebug(HardwareSerial * SerialDebug);
   
+  
 #ifdef ROS_USED 
-  void setRefreshRateUs(uint32_t intervalTime);
-    void setup( ros::NodeHandle  *myNodeHandle,	const char   *	topic);
-     void setup( ros::NodeHandle * myNodeHandle,	const char   *	topic,	const char   *	topicspeed);
+   /** @name ROS IPA
+*/
+//@{
+	/** setup the refresh rate of the topic
+	*/
+  void setRefreshRateUs(uint32_t intervalTime //!< duration between 2 topic in Micro Seconde
+  );
+  /** the ros initialisation	
+	*/
+    void setup( ros::NodeHandle  *myNodeHandle//!< the ROS node handler
+	,	const char   *	topic//!< the topic for position displayed in ROS
+	);
+	/** the ros initialisation	
+	*/
+     void setup( ros::NodeHandle * myNodeHandle//!< the ROS node handler
+	 ,	const char   *	topic//!< the topic for position displayed in ROS
+	 , const char   *	topicspeed//!< the topic for speed displayed in ROS
+	 );
+	/** function to be called in your main loop.
+	*/
 	void loop();
-#endif 
+//@}
+#endif
+ 
   private:
     
 #ifdef OPTIMIZE

@@ -1,6 +1,10 @@
+/** @file ZEncoder.cpp
+
+*/
+
 #include <ZEncoder.h>
-#define DEBUG(a) a
-//#define DEBUG(a) {}
+//#define DEBUG(a) a
+#define DEBUG(a) {}
 
 
 /** give direction since last getDeltaValue()*/
