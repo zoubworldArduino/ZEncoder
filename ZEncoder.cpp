@@ -25,11 +25,78 @@ signed int ZEncoder::getValue() {
 void ZEncoder::resetSpeed(void)
 {
 _spd=0;
+_inc=0;
+_spd_previous_time=_spd_time=micros();
+
 }
-/** return the nulber of tick per minutes
+/** return the number of tick per minutes
 */
 signed int ZEncoder::getSpeed(void) {
-
+	noInterrupts();	
+	signed long delta =( _spd_time-_spd_previous_time);
+	signed long now=micros();
+	signed long deltanow =( now-_spd_previous_time);
+        signed int myvalue=value;
+        
+	interrupts();
+	if (_inc==0)
+	{
+		_spd=0;
+	}
+	else
+          /*
+	if ((now-_spd_time) > (rate)) // one rate without tick means 0
+	 {
+		 _spd_time=_spd_previous_time=now;
+		   _inc=_spd =0;
+	 }
+        else
+	if ((delta) < (10000)) //we are slower than before.
+	 {
+             _spd =((myvalue-_spd_ValueOld)*60)/(now-_spd_previous_time_avg);
+	//	  _spd =(( ((signed int)_inc) *60000000) / (deltanow));
+	 }
+  else
+  //if ( deltanow> (rate>>4))
+  {// speed instantanemous because we are slow, else delta is too small to be accurate, we use average speed
+    _spd = (( ((signed int)_inc) *60000000) / delta);
+  }
+  
+  else// speed average
+    _spd =((myvalue-_spd_ValueOld)*60)/(now-_spd_previous_time_avg);
+	
+	_spd_ValueOld=myvalue;
+	_spd_previous_time_avg=now;
+	*/
+          if ((now-_spd_previous_time_avg)<rate             )
+          {
+            _spd=_spd;
+          }//nothing not enougth time
+            else
+              
+          if(_spd_ValueOld!=myvalue)
+          {
+             signed long long deltainc=((myvalue-_spd_ValueOld)*60LL);
+            deltainc *=1000000LL;
+             signed long long deltatime= (now-_spd_previous_time_avg);
+             _spd =(signed long long ) deltainc/deltatime;
+      	_spd_ValueOld=myvalue;
+	_spd_previous_time_avg=now; 
+          }  
+    /*    else
+          if(deltanow>(rate*4))
+          _spd=0;*/
+        else
+        {
+           signed long long deltainc=((myvalue-_spd_ValueOld)*60LL);
+          deltainc *=1000000LL;
+             signed long long deltatime= (now-_spd_previous_time_avg);
+             _spd =(signed long long ) deltainc/deltatime;
+        }
+          
+          
+	//(_spd_ValueOld-value)/( micros()-_spd_previous_time);
+/*
   noInterrupts();
   signed int speed = _spd;
   if (speed==0)//avoir div by 0
@@ -51,16 +118,17 @@ signed int ZEncoder::getSpeed(void) {
     speed =(s* (60*1000000)  / (duree));
 
   }
+*/
+  return (_spd);
 
-  return (speed);
-}
+/*
 
 to be implemented on this way else it cost a lot on IRQ:
 
   {
   (Value - ValueLastspeed)*1000000*60/(timen - timeLastspeed)
 ValueLastspeed=Value;
-timeLastspeed=timen;
+timeLastspeed=timen;*/
 }
 #endif
 
@@ -101,7 +169,7 @@ ZEncoder::ZEncoder(int pinA, int pinB, eMode mymode,
     rate=10;//10ms
 #endif
 #if ENABLE_SPEED
-  _timeLast = micros();
+  resetSpeed();
 #endif
   pinIC1 = pinA;
   pinIC2 = pinB;
@@ -329,7 +397,15 @@ void ZEncoder::update(void) {
   }
   value += inc;
   
+  
+
+ 
 #if ENABLE_SPEED
+_inc=inc;
+_spd_previous_time=_spd_time;
+_spd_time=_time;
+
+ /*
   // handle the encoder velocity calc
 signed long delta =(_time - _timeLast);
   if (delta > 0) {
@@ -371,15 +447,18 @@ void ZEncoder::setup( ros::NodeHandle * myNodeHandle,	const char   *	topic)
   nh=myNodeHandle;
   pub_counter=new ros::Publisher(topic, &counter_msg);
   
-  nh->advertise(*pub_counter);
+  nh->advertise(*pub_counter);/*
   #if ENABLE_SPEED
-  String topicspeed=topic;
+  String topicspeed= String();
+  if(*topic!=0)
+  for(;*topic!=0;topic++)
+  topicspeed +=*topic;
    topicspeed +="/SPEED";
     char   *	topics=new char[topicspeed. length()+1];
     topicspeed.toCharArray(topics,topicspeed.length()+1);
   pub_speed=new ros::Publisher(topics, &speed_msg);  
   nh->advertise(*pub_speed);
-  #endif
+  #endif*/
   DEBUG(nh->loginfo("ZEncoder::setup()")); 
   DEBUG(nh->loginfo(topic)); 
   
@@ -391,12 +470,14 @@ void ZEncoder::setup( ros::NodeHandle * myNodeHandle,	const char   *	topic)
 void ZEncoder::setup( ros::NodeHandle * myNodeHandle,	const char   *	topic,	const char   *	topicspeed)
 {
   nh=myNodeHandle;
-  pub_counter=new ros::Publisher(topic, &counter_msg);
-  
+
+  pub_counter=new ros::Publisher(topic, &counter_msg);//ros::Publisher;
+  assert(pub_counter!=0);// heap issue.
   nh->advertise(*pub_counter);
   #if ENABLE_SPEED
- 
-  pub_speed=new ros::Publisher(topicspeed, &speed_msg);  
+
+  pub_speed=new ros::Publisher(topicspeed, &speed_msg);  //ros::Publisher
+  assert(pub_speed!=0);// heap issue.
   nh->advertise(*pub_speed);
   #endif
   DEBUG(nh->loginfo("ZEncoder::setup()")); 

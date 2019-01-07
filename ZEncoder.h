@@ -7,6 +7,7 @@ An library that manage encoder like PDEC peripheral but in software with pin int
 #define _PZEncoder_H
 
 #include <Arduino.h>
+#include <assert.h>
 
 #ifdef ROS_USED 
 #include <ros.h>
@@ -15,7 +16,8 @@ An library that manage encoder like PDEC peripheral but in software with pin int
 #include <std_msgs/Int32.h>
    
 #endif 
-#define OPTIMIZE 1
+//#define OPTIMIZE 1
+#define ENABLE_SPEED 1
 /*==================================================================================================*/
 /*==================================================================================================*/
 /*==================================================================================================*/
@@ -103,15 +105,15 @@ public:
   */
   void setSerialDebug(HardwareSerial * SerialDebug);
   
-  
+//@{
+	/** setup the refresh rate of the topic speed
+	*/
+  void setRefreshRateUs(uint32_t intervalTime //!< duration between 2 topic in Micro Seconde
+  );  
 #ifdef ROS_USED 
    /** @name ROS IPA
 */
-//@{
-	/** setup the refresh rate of the topic
-	*/
-  void setRefreshRateUs(uint32_t intervalTime //!< duration between 2 topic in Micro Seconde
-  );
+
   /** the ros initialisation	
 	*/
     void setup( ros::NodeHandle  *myNodeHandle//!< the ROS node handler
@@ -130,6 +132,7 @@ public:
 #endif
  
   private:
+    uint32_t rate;
     
 #ifdef OPTIMIZE
       int * addIC1;
@@ -143,7 +146,6 @@ public:
     std_msgs::Int16 counter_msg;//speed //deltaD//D
     ros::Publisher *pub_counter;
     int timestamp;
-    uint32_t rate;
     
     
      #if ENABLE_SPEED
@@ -154,7 +156,6 @@ public:
   #endif
   
 #endif
-
   HardwareSerial * SerialDebug;
 
   volatile int ValueOld;
@@ -170,8 +171,18 @@ public:
   // Velocity data
   //  uint16_t  _period;  // velocity calculation period
   //  uint16_t  _count;   // running count of encoder clicks
+  //signed int _spd;     // last calculated speed (no sign) in clicks/second
+  //unsigned long _timeLast;  // last time read
+  
+  signed char _inc;
   signed int _spd;     // last calculated speed (no sign) in clicks/second
-  unsigned long _timeLast;  // last time read
+  unsigned long _spd_previous_time;  // previous to last time read
+  unsigned long _spd_time;  // last time read  
+  unsigned long _spd_previous_time_avg;// last time read  for average
+  volatile int _spd_ValueOld;// old value for average
+ 
+
+
 #endif
   void privateIntHandler();  //not used
 };
