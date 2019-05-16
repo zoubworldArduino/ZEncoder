@@ -145,7 +145,7 @@ public:
     ros::NodeHandle  *nh;
     std_msgs::Int16 counter_msg;//speed //deltaD//D
     ros::Publisher *pub_counter;
-    int timestamp;
+    unsigned long timestamp;
     
     
      #if ENABLE_SPEED

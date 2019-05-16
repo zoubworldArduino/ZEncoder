@@ -32,13 +32,12 @@ _spd_previous_time=_spd_time=micros();
 /** return the number of tick per minutes
 */
 signed int ZEncoder::getSpeed(void) {
-	noInterrupts();	
+	//noInterrupts();	
 	signed long delta =( _spd_time-_spd_previous_time);
-	signed long now=micros();
+        signed long now=micros();
 	signed long deltanow =( now-_spd_previous_time);
         signed int myvalue=value;
-        
-	interrupts();
+     	//interrupts();
 	if (_inc==0)
 	{
 		_spd=0;
@@ -438,6 +437,7 @@ signed long delta =(_time - _timeLast);
 void ZEncoder::setRefreshRateUs(uint32_t intervalTime)
 {
 	rate=intervalTime;
+        timestamp=micros();
 }
 /** setup :
   At setup after NodeHandle setup, call this to initialise the topic
@@ -447,7 +447,12 @@ void ZEncoder::setup( ros::NodeHandle * myNodeHandle,	const char   *	topic)
   nh=myNodeHandle;
   pub_counter=new ros::Publisher(topic, &counter_msg);
   
-  nh->advertise(*pub_counter);/*
+ 
+
+  bool result=nh->advertise(*pub_counter);
+  assert(result);
+
+/*
   #if ENABLE_SPEED
   String topicspeed= String();
   if(*topic!=0)
@@ -461,6 +466,7 @@ void ZEncoder::setup( ros::NodeHandle * myNodeHandle,	const char   *	topic)
   #endif*/
   DEBUG(nh->loginfo("ZEncoder::setup()")); 
   DEBUG(nh->loginfo(topic)); 
+  setRefreshRateUs(20000);
   
 }
 
@@ -473,16 +479,20 @@ void ZEncoder::setup( ros::NodeHandle * myNodeHandle,	const char   *	topic,	cons
 
   pub_counter=new ros::Publisher(topic, &counter_msg);//ros::Publisher;
   assert(pub_counter!=0);// heap issue.
-  nh->advertise(*pub_counter);
+  
+  
+    bool result=nh->advertise(*pub_counter);
+  assert(result);
   #if ENABLE_SPEED
 
   pub_speed=new ros::Publisher(topicspeed, &speed_msg);  //ros::Publisher
   assert(pub_speed!=0);// heap issue.
-  nh->advertise(*pub_speed);
+  result=nh->advertise(*pub_speed);
+  assert(result);
   #endif
   DEBUG(nh->loginfo("ZEncoder::setup()")); 
   DEBUG(nh->loginfo(topic)); 
-  
+  setRefreshRateUs(20000);
 }
 /** loop :
   on loop  before NodeHandle refresh(spinOnce), call this to update the topic
@@ -490,18 +500,28 @@ void ZEncoder::setup( ros::NodeHandle * myNodeHandle,	const char   *	topic,	cons
 void ZEncoder::loop()
 {
   if(pub_counter!=0)
-  if((micros()-timestamp)>rate)
+  {
+    unsigned long duree=micros();
+ if((duree)>timestamp)
   {
       counter_msg.data = -getValue();
-      pub_counter->publish(&counter_msg);
+      
+        signed int result=pub_counter->publish(&counter_msg);
+  assert(result>=0);
         #if ENABLE_SPEED
         if(pub_speed!=0)
         {
            speed_msg.data =  -getSpeed();
-           pub_speed->publish(&speed_msg);
+           
+           signed int result=pub_speed->publish(&speed_msg);
+           assert(result>=0);
         }
         #endif
-      timestamp=micros();
+        
+      timestamp+=rate;
+      if (timestamp<micros())
+        timestamp=micros()+rate;
+  }
   }
 }
 #endif 
