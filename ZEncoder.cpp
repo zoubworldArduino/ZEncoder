@@ -447,7 +447,7 @@ void ZEncoder::setup( ros::NodeHandle * myNodeHandle,	const char   *	topic)
   nh=myNodeHandle;
   pub_counter=new ros::Publisher(topic, &counter_msg);
   
- 
+   assert(pub_counter!=0);
 
   bool result=nh->advertise(*pub_counter);
   assert(result);
